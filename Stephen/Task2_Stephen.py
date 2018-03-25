@@ -10,6 +10,7 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import GridSearchCV
 # Visualising
 from io import StringIO
+from sklearn import tree
 
 def analyse_feature_importance(dm_model, feature_names, n_to_display=20):
     # grab feature importances from the model
@@ -47,6 +48,37 @@ def data_prep():
     
     return org1
 
+def nodes_leaves(model):
+    #The size of the tree
+    n_nodes = model.tree_.node_count
+    print(n_nodes)
+
+    children_left = model.tree_.children_left
+    children_right = model.tree_.children_right
+
+    node_depth = np.zeros(shape=n_nodes, dtype=np.int64)
+    is_leaves = np.zeros(shape=n_nodes, dtype=bool) 
+    stack = [(0, -1)]  # seed is the root node id and its parent depth
+    while len(stack) > 0:
+        node_id, parent_depth = stack.pop()
+        node_depth[node_id] = parent_depth + 1
+        
+        # If we have a test node
+        if (children_left[node_id] != children_right[node_id]):
+            stack.append((children_left[node_id], parent_depth + 1))
+            stack.append((children_right[node_id], parent_depth + 1))
+        else:
+            is_leaves[node_id] = True
+                
+    print("The binary tree structure has %s nodes," % n_nodes)
+
+    n_count = 0
+    for i in range(n_nodes):
+        if is_leaves[i]:
+            n_count = n_count + 1
+    print("and has %s leaf nodes." % n_count)
+
+
 # call data_prep method
 org1 = data_prep()
 
@@ -67,18 +99,10 @@ model.fit(X_train, y_train)
 print("Train accuracy:", model.score(X_train, y_train))
 print("Test accuracy:", model.score(X_test, y_test))
 
-#size of the tree
-clf = model.fit(X_train, y_train)
-treeObj = clf.tree_
-node = treeObj.node_count
-print(node)
-
-node.is_leaf()
-
-
-
 y_pred = model.predict(X_test)
 print(classification_report(y_test, y_pred))
+
+nodes_leaves(model)
 
 #analyze top 20 important features from the model 
 analyse_feature_importance(model, X.columns, n_to_display=20)
@@ -102,6 +126,9 @@ plt.plot(range(2, 21), train_score, 'b', range(2,21), test_score, 'r')
 plt.xlabel('max_depth\nBlue = Training Acc. Red = Test Acc.')
 plt.ylabel('accuracy')
 plt.show()
+
+
+
 
 #grid search CV
 params = {'criterion': ['gini', 'entropy'],
@@ -138,3 +165,14 @@ print(classification_report(y_test, y_pred))
 
 #print parameters of the best model
 print(cv.best_params_)
+
+model2 = DecisionTreeClassifier(max_depth=5, min_samples_leaf=50, random_state=rs)
+model2.fit(X_train, y_train)
+
+print("Train accuracy:", model2.score(X_train, y_train))
+print("Test accuracy:", model2.score(X_test, y_test))
+
+y_pred2 = model2.predict(X_test)
+print(classification_report(y_test, y_pred2))
+
+nodes_leaves(model2)
