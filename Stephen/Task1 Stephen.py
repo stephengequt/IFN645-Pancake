@@ -55,8 +55,18 @@ df['NGROUP'].fillna('U',inplace = True)
 
 #Drop variables that are not needed
 df.drop(['DOB', 'EDATE','LCDATE','AGE','CUSTID','NEIGHBORHOOD', 'TV_REG','BILL'], axis=1, inplace=True)
+df.drop(['AGEGRP1','ORGANICS'], axis=1, inplace=True)
+
+#Filled up AGEGRP1 and AGEGRP2 ######
+condlist = [df['LTIME']<=10, df['LTIME']<=20, df['LTIME']<=30, df['LTIME']<=40]
+choicelist = ['<10','10-20','20-30','30-40']
+df['LTIME'] = np.select(condlist, choicelist)
+
+print(df['LTIME'])
 
 # one-hot encoding
 df = pd.get_dummies(df)
 
 print(df.info())
+
+df.to_csv('VeryClean.csv')

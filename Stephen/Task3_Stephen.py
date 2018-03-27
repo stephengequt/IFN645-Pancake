@@ -5,18 +5,33 @@ from sklearn.metrics import classification_report, accuracy_score
 from sklearn.model_selection import GridSearchCV
 
 def data_prep():
-    
-    # read the organics dataset 
+
+    # read the organics dataset
     org1 = pd.read_csv('dataset/Organic_Clean.csv')
 
     #drop the unused target variable that is ORGANICS
-    org1.drop(['ORGANICS'], axis=1, inplace=True)
+    org1.drop(['ORGANICS','AGEGRP1'], axis=1, inplace=True)
 
-    # one-hot encoding
-    org1 = pd.get_dummies(org1)
+    GENDER = {'F': 0, 'M': 1, 'U': 2}
+    org1['GENDER'] = org1['GENDER'].map(GENDER)
+
+    # AGEGRP1 = {'<20': 1, '20-40': 2, '40-60': 3, '60-80': 4}
+    # org1['AGEGRP1'] = org1['AGEGRP1'].map(AGEGRP1)
+
+    AGEGRP2 = {'10-20': 1, '20-30': 2, '30-40': 3, '40-50': 4, '50-60': 5, '60-70': 6, '70-80': 7}
+    org1['AGEGRP2'] = org1['AGEGRP2'].map(AGEGRP2)
+
+    NGROUP = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'U': 6}
+    org1['NGROUP'] = org1['NGROUP'].map(NGROUP)
+
+    REGION = {'Midlands': 0, 'North': 1, 'Scottish': 2, 'South East': 3, 'South West': 4, 'Unknown': 5}
+    org1['REGION'] = org1['REGION'].map(REGION)
+
+    CLASS = {'Tin': 0, 'Silver': 1, 'Platinum': 2, 'Gold': 3}
+    org1['CLASS'] = org1['CLASS'].map(CLASS)
 
     print(org1.info())
-    
+
     return org1
 
 # call data_prep method
@@ -113,15 +128,13 @@ def plot_skewed_columns(df):
     # setting up subplots for easier visualisation
     f, axes = plt.subplots(2,4, figsize=(10,10), sharex=False)
 
-    sns.distplot(df['AFFL'].dropna(), hist=False, ax=axes[0,0])
-    sns.distplot(df['LTIME'].dropna(), hist=False, ax=axes[0,1])
-    sns.distplot(df['GENDER_F'].dropna(), hist=False, ax=axes[1,0])
-    sns.distplot(df['GENDER_M'].dropna(), hist=False, ax=axes[1,1])
-
-    sns.distplot(df['GENDER_U'].dropna(), hist=False, ax=axes[0,2])
-    sns.distplot(df['AGEGRP1_20-40'].dropna(), hist=False, ax=axes[0,3])
-    sns.distplot(df['AGEGRP1_40-60'].dropna(), hist=False, ax=axes[1,2])
-    sns.distplot(df['AGEGRP1_60-80'].dropna(), hist=False, ax=axes[1,3])
+    sns.distplot(df['GENDER'].dropna(), hist=False, ax=axes[0,0])
+    sns.distplot(df['AGEGRP2'].dropna(), hist=False, ax=axes[0,1])
+    sns.distplot(df['NGROUP'].dropna(), hist=False, ax=axes[1,0])
+    sns.distplot(df['REGION'].dropna(), hist=False, ax=axes[1,1])
+    sns.distplot(df['CLASS'].dropna(), hist=False, ax=axes[0,2])
+    sns.distplot(df['AFFL'].dropna(), hist=False, ax=axes[0,3])
+    sns.distplot(df['LTIME'].dropna(), hist=False, ax=axes[1,2])
 
     plt.show()
     
@@ -130,8 +143,8 @@ plot_skewed_columns(org1)
 import numpy as np
 
 # list columns to be transformed
-columns_to_transform = ['AFFL', 'LTIME', 'GENDER_F', 'GENDER_M',
-                        'GENDER_U', 'AGEGRP1_20-40', 'AGEGRP1_40-60', 'AGEGRP1_60-80']
+columns_to_transform = ['GENDER', 'AGEGRP2', 'NGROUP', 'REGION',
+                        'CLASS', 'AFFL', 'LTIME']
 
 # copy the dataframe
 org1_log = org1.copy()

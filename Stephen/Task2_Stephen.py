@@ -1,3 +1,4 @@
+
 import numpy as np
 import pandas as pd
 import pydot
@@ -15,7 +16,7 @@ from sklearn import tree
 def analyse_feature_importance(dm_model, feature_names, n_to_display=20):
     # grab feature importances from the model
     importances = dm_model.feature_importances_
-    
+
     # sort them out in descending order
     indices = np.argsort(importances)
     indices = np.flip(indices, axis=0)
@@ -34,18 +35,18 @@ def visualize_decision_tree(dm_model, feature_names, save_name):
 
 #Default dataset
 def data_prep():
-    
-    # read the organics dataset 
-    org1 = pd.read_csv('dataset/Organic_Clean.csv')
+
+    # read the organics dataset
+    org1 = pd.read_csv('dataset/Organic_Clean_V2.csv')
 
     #drop the unused target variable that is ORGANICS
-    org1.drop(['ORGANICS'], axis=1, inplace=True)
+    org1.drop(['ORGANICS','AGEGRP1'], axis=1, inplace=True)
 
     # one-hot encoding
     org1 = pd.get_dummies(org1)
 
     print(org1.info())
-    
+
     return org1
 
 def nodes_leaves(model):
@@ -56,20 +57,22 @@ def nodes_leaves(model):
     children_left = model.tree_.children_left
     children_right = model.tree_.children_right
 
+
+
     node_depth = np.zeros(shape=n_nodes, dtype=np.int64)
-    is_leaves = np.zeros(shape=n_nodes, dtype=bool) 
+    is_leaves = np.zeros(shape=n_nodes, dtype=bool)
     stack = [(0, -1)]  # seed is the root node id and its parent depth
     while len(stack) > 0:
         node_id, parent_depth = stack.pop()
         node_depth[node_id] = parent_depth + 1
-        
+
         # If we have a test node
         if (children_left[node_id] != children_right[node_id]):
             stack.append((children_left[node_id], parent_depth + 1))
             stack.append((children_right[node_id], parent_depth + 1))
         else:
             is_leaves[node_id] = True
-                
+
     print("The binary tree structure has %s nodes," % n_nodes)
 
     n_count = 0
@@ -104,11 +107,13 @@ print(classification_report(y_test, y_pred))
 
 nodes_leaves(model)
 
-#analyze top 20 important features from the model 
+#analyze top 20 important features from the model
 analyse_feature_importance(model, X.columns, n_to_display=20)
-#visualize
-visualize_decision_tree(model, X.columns, "stephentask2_org_vis.png")
 
+#visualize
+# visualize_decision_tree(model, X.columns, "stephentask2_org_vis.png")
+
+print(" hyperparameters\n___________________________________________________________________________")
 # hyperparameters and model performance
 test_score = []
 train_score = []
@@ -117,7 +122,7 @@ train_score = []
 for max_depth in range(2, 21):
     model = DecisionTreeClassifier(max_depth=max_depth, random_state=rs)
     model.fit(X_train, y_train)
-    
+
     test_score.append(model.score(X_test, y_test))
     train_score.append(model.score(X_train, y_train))
 
@@ -151,7 +156,7 @@ print(cv.best_params_)
 #grid search CV #2
 params = {'criterion': ['gini', 'entropy'],
           'max_depth': range(2,6),
-          'min_samples_leaf': range(45,56)}
+          'min_samples_leaf': range(35,56)}
 
 cv = GridSearchCV(param_grid=params, estimator=DecisionTreeClassifier(random_state=rs), cv=10)
 cv.fit(X_train, y_train)
@@ -166,7 +171,7 @@ print(classification_report(y_test, y_pred))
 #print parameters of the best model
 print(cv.best_params_)
 
-model2 = DecisionTreeClassifier(max_depth=5, min_samples_leaf=50, random_state=rs)
+model2 = DecisionTreeClassifier(max_depth=5, min_samples_leaf=20, random_state=rs)
 model2.fit(X_train, y_train)
 
 print("Train accuracy:", model2.score(X_train, y_train))
