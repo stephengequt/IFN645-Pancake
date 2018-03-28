@@ -110,17 +110,19 @@ print("\n--------------------- Optimal LogisticRegression Model-----------------
 # grid search CV
 params = {'C': [pow(10, x) for x in range(-6, 4)],
           'penalty': ['l2'],
-          'solver': ['newton-cg', 'lbfgs', 'sag'],
-          'multi_class': ['ovr', 'multinomial']}
+          'solver': ['newton-cg', 'lbfgs', 'sag']
+          }
 
 # grid search CV
 params2 = {'C': [pow(10, x) for x in range(-6, 4)],
           'penalty': ['l1'],
-          'solver': ['liblinear','saga']}
+          'solver': ['liblinear']
+           }
 
 # use all cores to tune logistic regression with C parameter
 cv = GridSearchCV(param_grid=params, estimator=LogisticRegression(random_state=rs), cv=10, n_jobs=-1)
 cv.fit(X_train_log, y_train_log)
+
 
 # test the best model
 print("Train accuracy:", cv.score(X_train_log, y_train_log))
