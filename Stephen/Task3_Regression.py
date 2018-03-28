@@ -29,9 +29,8 @@ org1 = data_prep()
 
 #Transformation
 print('\n----------------------Before Transformation------------------------\n')
-
 # setting up subplots for easier visualisation
-f, axes = plt.subplots(1, 2, figsize=(10, 10), sharex=False)
+f, axes = plt.subplots(1, 2, figsize=(5, 5), sharex=False)
 
 sns.distplot(org1['AFFL'].dropna(), hist=False, ax=axes[0])
 sns.distplot(org1['LTIME'].dropna(), hist=False, ax=axes[1])
@@ -53,7 +52,7 @@ for col in columns_to_transform:
 print('\n----------------------After Transformation------------------------\n')
 
 # setting up subplots for easier visualisation
-f, axes = plt.subplots(1, 2, figsize=(10, 10), sharex=False)
+f, axes = plt.subplots(1, 2, figsize=(5, 5), sharex=False)
 
 sns.distplot(org1_log['AFFL'].dropna(), hist=False, ax=axes[0])
 sns.distplot(org1_log['LTIME'].dropna(), hist=False, ax=axes[1])
@@ -87,64 +86,39 @@ for i in range(8):
           format(i, min(col), max(col), np.mean(col), np.std(col)))
 
 
+
+print("\n-------------------Default LogisticRegression Model-------------------\n")
+
 model = LogisticRegression(random_state=rs)
 
 # fit it to training data
-model.fit(X_train, y_train)
+model.fit(X_train_log, y_train_log)
 
 # training and test accuracy
-print("Train accuracy:", model.score(X_train, y_train))
-print("Test accuracy:", model.score(X_test, y_test))
+print("Train accuracy:", model.score(X_train_log, y_train_log))
+print("Test accuracy:", model.score(X_test_log, y_test_log))
 
 # classification report on test data
-y_pred = model.predict(X_test)
-print(classification_report(y_test, y_pred))
+y_pred = model.predict(X_test_log)
+print(classification_report(y_test_log, y_pred))
 
-print(model.coef_)
 
-feature_names = X.columns
-coef = model.coef_[0]
 
-# limit to 20 features, you can comment the following line to print out everything
-coef = coef[:20]
 
-for i in range(len(coef)):
-    print(feature_names[i], ':', coef[i])
+print("\n--------------------- Optimal LogisticRegression Model-------------------\n")
 
 # grid search CV
-params = {'C': [pow(10, x) for x in range(-6, 4)]}
+params = {'C': [pow(10, x) for x in range(-6, 4)],
+          'penalty': ['l2'],
+          'solver': ['newton-cg', 'lbfgs', 'sag'],
+          'multi_class': ['ovr', 'multinomial']}
+
+# grid search CV
+params2 = {'C': [pow(10, x) for x in range(-6, 4)],
+          'penalty': ['l1'],
+          'solver': ['liblinear','saga']}
 
 # use all cores to tune logistic regression with C parameter
-cv = GridSearchCV(param_grid=params, estimator=LogisticRegression(random_state=rs), cv=10, n_jobs=-1)
-cv.fit(X_train, y_train)
-
-# test the best model
-print("Train accuracy:", cv.score(X_train, y_train))
-print("Test accuracy:", cv.score(X_test, y_test))
-
-y_pred = cv.predict(X_test)
-print(classification_report(y_test, y_pred))
-
-# print parameters of the best model
-print(cv.best_params_)
-
-
-
-# create X, y and train test data partitions
-y_log = org1_log['ORGYN']
-X_log = org1_log.drop(['ORGYN'], axis=1)
-X_mat_log = X_log.as_matrix()
-X_train_log, X_test_log, y_train_log, y_test_log = train_test_split(X_mat_log, y_log, test_size=0.3, stratify=y_log,
-                                                                    random_state=rs)
-
-# standardise them again
-scaler_log = StandardScaler()
-X_train_log = scaler_log.fit_transform(X_train_log, y_train_log)
-X_test_log = scaler_log.transform(X_test_log)
-
-# grid search CV
-params = {'C': [pow(10, x) for x in range(-6, 4)]}
-
 cv = GridSearchCV(param_grid=params, estimator=LogisticRegression(random_state=rs), cv=10, n_jobs=-1)
 cv.fit(X_train_log, y_train_log)
 
@@ -158,50 +132,47 @@ print(classification_report(y_test_log, y_pred))
 # print parameters of the best model
 print(cv.best_params_)
 
+
+print("\n--------------------------Feature Importance-------------------------\n")
+feature_names = X_log.columns
+coef = model.coef_[0]
+
+# limit to 20 features, you can comment the following line to print out everything
+# coef = coef[:20]
+
+for i in range(len(coef)):
+    print(feature_names[i], ':', coef[i])
+
+feature_importance = pd.Series(np.abs(coef), index = feature_names)
+feature_importance=feature_importance.sort_values(ascending=False)
+
+from seaborn import set_style
+set_style('dark')
+plt.figure(figsize=[10,7])
+(feature_importance.plot.bar())
+plt.show()
+
+
+print("\n--------------------------Recursive feature elimination-------------------------\n")
+
 from sklearn.feature_selection import RFECV
 
 rfe = RFECV(estimator=LogisticRegression(random_state=rs), cv=10)
-rfe.fit(X_train, y_train)  # run the RFECV
-
-# comparing how many variables before and after
-print("Original feature set", X_train.shape[1])
-print("Number of features after elimination", rfe.n_features_)
-
-X_train_sel = rfe.transform(X_train)
-X_test_sel = rfe.transform(X_test)
-
-# grid search CV
-params = {'C': [pow(10, x) for x in range(-6, 4)]}
-
-cv = GridSearchCV(param_grid=params, estimator=LogisticRegression(random_state=rs), cv=10, n_jobs=-1)
-cv.fit(X_train_sel, y_train)
-
-# test the best model
-print("Train accuracy:", cv.score(X_train_sel, y_train))
-print("Test accuracy:", cv.score(X_test_sel, y_test))
-
-y_pred = cv.predict(X_test_sel)
-print(classification_report(y_test, y_pred))
-
-# print parameters of the best model
-print(cv.best_params_)
-
-# running RFE + log transformation
-rfe = RFECV(estimator=LogisticRegression(random_state=rs), cv=10)
-rfe.fit(X_train_log, y_train_log)  # run the RFECV on log transformed dataset
+rfe.fit(X_train_log, y_train_log)  # run the RFECV
 
 # comparing how many variables before and after
 print("Original feature set", X_train_log.shape[1])
 print("Number of features after elimination", rfe.n_features_)
 
-# select features from log transformed dataset
 X_train_sel_log = rfe.transform(X_train_log)
 X_test_sel_log = rfe.transform(X_test_log)
+print("Features sorted by their rank:")
+print(sorted(zip(map(lambda x: round(x, 4), rfe.ranking_), feature_names)))
 
 # init grid search CV on transformed dataset
-params = {'C': [pow(10, x) for x in range(-6, 4)]}
-cv = GridSearchCV(param_grid=params, estimator=LogisticRegression(random_state=rs), cv=10, n_jobs=-1)
 cv.fit(X_train_sel_log, y_train_log)
+
+print("\n--------------------------Test the best model-------------------------\n")
 
 # test the best model
 print("Train accuracy:", cv.score(X_train_sel_log, y_train_log))
@@ -210,9 +181,7 @@ print("Test accuracy:", cv.score(X_test_sel_log, y_test_log))
 y_pred_log = cv.predict(X_test_sel_log)
 print(classification_report(y_test_log, y_pred_log))
 
-# print parameters of the best model
-print(cv.best_params_)
-
+print("\n--------------------------DecisionTreeClassifier -------------------------\n")
 from sklearn.tree import DecisionTreeClassifier
 
 # similar parameters with the last practical
@@ -254,3 +223,8 @@ print(classification_report(y_test_log, y_pred))
 
 # print parameters of the best model
 print(cv.best_params_)
+
+
+
+
+
