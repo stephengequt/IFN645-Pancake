@@ -10,7 +10,7 @@
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv('Stephen/Case Study 2/datasets/model_car_sales.csv', na_filter=False)
+df = pd.read_csv('model_car_sales.csv', na_filter=False)
 df.info()
 
 # get more information from RegDens
@@ -156,4 +156,22 @@ print(df2['Cluster_ID'].value_counts())
 
 # pairplot the cluster distribution.
 cluster_g = sns.pairplot(df2, hue='Cluster_ID')
+plt.show()
+
+############# Elbow ################
+# list to save the clusters and cost
+clusters = []
+inertia_vals = []
+
+# this whole process should take a while
+for k in range(2, 15, 2):
+    # train clustering with the specified K
+    model = KMeans(n_clusters=k, random_state=rs, n_jobs=10)
+    model.fit(Y)
+    # append model to cluster list
+    clusters.append(model)
+    inertia_vals.append(model.inertia_)
+    
+# plot the inertia vs K values
+plt.plot(range(2,15,2), inertia_vals, marker='*')
 plt.show()
