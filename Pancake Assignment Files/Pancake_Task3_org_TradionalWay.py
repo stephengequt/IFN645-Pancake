@@ -13,12 +13,12 @@ def data_prep():
     org1 = pd.read_csv('Organic_Clean.csv')
     
     # drop variables
-    #org1.drop(['AGEGRP1'],axis = 1, inplace = True)
+    #org1.drop(['ORGANICS','AGEGRP2'],axis = 1, inplace = True)
   
-    # one-hot encoding
+    #one-hot encoding
     #org1 = pd.get_dummies(org1)
 
-    print(org1.info())
+    #print(org1.info())
     
     return org1
 
@@ -27,7 +27,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.model_selection import GridSearchCV
-
+from dm_tools import data_prep
 
 # preprocessing step
 org1 = data_prep()
@@ -56,10 +56,12 @@ rs = 10
 
 # train test split
 y = org1['ORGYN']
-X = org1.drop(['ORGYN','ORGANICS'], axis=1)
+X = org1.drop(['ORGYN','ORGANICS','AGEGRP1'], axis=1)
 X_mat = X.as_matrix()
-X_train, X_test, y_train, y_test = train_test_split(X_mat, y, test_size=0.3, stratify=y, random_state=rs)
+X_train, X_test, y_train, y_test = train_test_split(X_mat, y, test_size=0.4, stratify=y, random_state=rs)
 
+
+##################################################################################
 
 from sklearn.preprocessing import StandardScaler
 
@@ -158,30 +160,21 @@ def plot_skewed_columns(df):
     f, axes = plt.subplots(2,4, figsize=(10,10), sharex=False)
 
     # gift avg plots
-    sns.distplot(df['GiftAvg36'].dropna(), hist=False, ax=axes[0,0])
-    sns.distplot(df['GiftAvgAll'].dropna(), hist=False, ax=axes[0,1])
-    sns.distplot(df['GiftAvgCard36'].dropna(), hist=False, ax=axes[1,0])
-    sns.distplot(df['GiftAvgLast'].dropna(), hist=False, ax=axes[1,1])
-
-    # gift cnt plots
-    sns.distplot(df['GiftCnt36'].dropna(), hist=False, ax=axes[0,2])
-    sns.distplot(df['GiftCntAll'].dropna(), hist=False, ax=axes[0,3])
-    sns.distplot(df['GiftCntCard36'].dropna(), hist=False, ax=axes[1,2])
-    sns.distplot(df['GiftCntCardAll'].dropna(), hist=False, ax=axes[1,3])
-
+    sns.distplot(df['AFFL'].dropna(), hist=False, ax=axes[0,0])
+    sns.distplot(df['LTIME'].dropna(), hist=False, ax=axes[0,1])
+  
     plt.show()
     
-plot_skewed_columns(df)
+plot_skewed_columns(org1)
 
 ###### Transform variables #########
 import numpy as np
 
 # list columns to be transformed
-columns_to_transform = ['GiftAvg36', 'GiftAvgAll', 'GiftAvgCard36', 'GiftAvgLast',
-                        'GiftCnt36', 'GiftCntAll', 'GiftCntCard36', 'GiftCntCardAll']
+columns_to_transform = ['AFFL', 'LTIME']
 
 # copy the dataframe
-df_log = df.copy()
+df_log = org1.copy()
 
 # transform the columns with np.log
 for col in columns_to_transform:
@@ -194,8 +187,8 @@ plot_skewed_columns(df_log)
 ####### RESCALE and RESAMPLE training and test data #########
 
 # create X, y and train test data partitions
-y_log = df_log['TargetB']
-X_log = df_log.drop(['TargetB'], axis=1)
+y_log = df_log['ORGYN']
+X_log = df_log.drop(['ORGYN','ORGANICS'], axis=1)
 X_mat_log = X_log.as_matrix()
 X_train_log, X_test_log, y_train_log, y_test_log = train_test_split(X_mat_log, y_log, test_size=0.3, stratify=y_log, 
                                                                     random_state=rs)
@@ -226,18 +219,20 @@ print(cv.best_params_)
 ######################################################################
 
 ########## Dimensionality elimination ###############
-
-from sklearn.feature_selection import RFECV
-
-rfe = RFECV(estimator = LogisticRegression(random_state=rs), cv=10)
-rfe.fit(X_train, y_train) # run the RFECV
-
-# comparing how many variables before and after
-print("Original feature set", X_train.shape[1])
-print("Number of features after elimination", rfe.n_features_)
-
-X_train_sel = rfe.transform(X_train)
-X_test_sel = rfe.transform(X_test)
+# we do not need to use this part as we do not have much variables
+# =============================================================================
+ from sklearn.feature_selection import RFECV
+ 
+ rfe = RFECV(estimator = LogisticRegression(random_state=rs), cv=10)
+ rfe.fit(X_train, y_train) # run the RFECV
+ 
+ # comparing how many variables before and after
+ print("Original feature set", X_train.shape[1])
+ print("Number of features after elimination", rfe.n_features_)
+ 
+ X_train_sel = rfe.transform(X_train)
+ X_test_sel = rfe.transform(X_test)
+# =============================================================================
 
 ######## Re-Run the model using grid search ##########
 # grid search CV
@@ -284,3 +279,23 @@ print(classification_report(y_test_log, y_pred_log))
 
 # print parameters of the best model
 print(cv.best_params_)
+
+###########################################################################################################
+
+from sklearn.tree import DecisionTreeClassifier
+
+# similar parameters with the last practical
+params = {'criterion': ['gini', 'entropy'],
+          'max_depth': range(2, 20),
+          'min_samples_leaf': range(20, 600, 10)}
+
+cv = GridSearchCV(param_grid=params, estimator=DecisionTreeClassifier(random_state=rs), cv=10)
+cv.fit(X_train_log, y_train_log)
+
+print(cv.best_params_)
+
+
+from dm_tools import analyse_feature_importance
+
+# analyse feature importance from the tuned decision tree against log transformed X
+analyse_feature_importance(cv.best_estimator_, X_log.columns)
