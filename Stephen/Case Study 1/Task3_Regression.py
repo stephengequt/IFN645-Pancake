@@ -11,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 
 def data_prep():
     # read the organics dataset
-    org1 = pd.read_csv('dataset/Organic_Clean.csv')
+    org1 = pd.read_csv('Stephen/dataset/Organic_Clean.csv')
 
     # drop the unused target variable that is ORGANICS
     org1.drop(['ORGANICS', 'AGEGRP1'], axis=1, inplace=True)
