@@ -23,10 +23,10 @@ from sklearn.model_selection import train_test_split
 org_2 = pd.read_csv('Organic_Clean.csv')
 
 # drop GRPAGE1 & GRPAGE2 variables and create seperate datasets
-org_2.drop(['AGEGRP1'], axis=1, inplace=True)
+org_2.drop(['AGEGRP2'], axis=1, inplace=True)
     
 # one-hot encoding all files
-org_2 = pd.get_dummies(org_1)
+org_2 = pd.get_dummies(org_2)
 
 print(org_2.info())    
 
