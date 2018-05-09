@@ -8,31 +8,32 @@ Created on Tue Mar 13 14:45:03 2018
 import os
 
 os.getcwd()
-
-import numpy as np
-import pandas as pd
-
-from sklearn.model_selection import train_test_split
-
 def data_prep():
     
     # read the organics dataset 
-    org1 = pd.read_csv('Organic_Clean.csv')
+    org1 = pd.read_csv('Organic_Clean_V2.csv')
     
     # drop variables
-    #org1.drop(['AGEGRP1'],axis = 1, inplace = True)
+    #org1.drop(['ORGANICS','AGEGRP2'],axis = 1, inplace = True)
   
-    # one-hot encoding
+    #one-hot encoding
     #org1 = pd.get_dummies(org1)
 
-    print(org1.info())
+    #print(org1.info())
     
     return org1
 
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, accuracy_score
+from sklearn.model_selection import GridSearchCV
+#from dm_tools import data_prep
+
 # call data_prep method
+
+
 org1 = data_prep()
-
-
 GENDER = {'F':0, 'M':1,'U':2}
 org1['GENDER'] = org1['GENDER'].map(GENDER)
 
@@ -50,6 +51,12 @@ org1['REGION'] = org1['REGION'].map(REGION)
 
 CLASS = {'Tin':0,'Silver':1,'Platinum':2,'Gold':3}
 org1['CLASS'] = org1['CLASS'].map(CLASS)
+
+AFFL = {'<5':1,'<10':2, '<15':3,'<20':4,'<25':5, '<30':6, '<35':7}
+org1['AFFL'] = org1['AFFL'].map(AFFL)
+
+LTIME = {'<5':1,'<10':2, '<15':3,'<20':4,'<25':5, '<30':6, '<35':7, '<40':8}
+org1['LTIME'] = org1['LTIME'].map(LTIME)
 
 
 # target/input split
@@ -150,7 +157,7 @@ for max_depth in range(2, 21):
 import matplotlib.pyplot as plt
 
 # plot max depth hyperparameter values vs training and test accuracy score
-plt.plot(range(2, 21), train_score, 'b', range(2,21), test_score, 'r')
+plt.plot(range(2, 21), train_score, 'b', range(6,21), test_score, 'r')
 plt.xlabel('max_depth\nBlue = Training Acc. Red = Test Acc.')
 plt.ylabel('accuracy')
 plt.show()
@@ -162,7 +169,7 @@ from sklearn.model_selection import GridSearchCV
 #grid search CV
 params = {'criterion': ['gini', 'entropy'],
           'max_depth': range(2,7),
-          'min_samples_leaf': range(20,60,10)}
+          'min_samples_leaf': range(20,600,10)}
 
 cv = GridSearchCV(param_grid=params, estimator=DecisionTreeClassifier(random_state=rs), cv=10)
 cv.fit(X_train, y_train)
@@ -176,11 +183,25 @@ print(classification_report(y_test, y_pred))
 
 #print parameters of the best model
 print(cv.best_params_)
+
+################# importance parameters #####################
+importances = model.feature_importances_
+feature_names = X.columns
+
+# sort them out in descending order
+indices = np.argsort(importances)
+indices = np.flip(indices, axis=0)
+
+# limit to 20 features, you can leave this out to print out everything
+indices = indices[:20]
+
+for i in indices:
+    print(feature_names[i], ':', importances[i])
 
 #grid search CV #2
 params = {'criterion': ['gini', 'entropy'],
-          'max_depth': range(2,6),
-          'min_samples_leaf': range(45,56)}
+          'max_depth': range(1,6),
+          'min_samples_leaf': range(35,300)}
 
 cv = GridSearchCV(param_grid=params, estimator=DecisionTreeClassifier(random_state=rs), cv=10)
 cv.fit(X_train, y_train)
@@ -194,3 +215,30 @@ print(classification_report(y_test, y_pred))
 
 #print parameters of the best model
 print(cv.best_params_)
+
+
+# inside `dm_tools.py' together with data_prep()
+import numpy as np
+import pydot
+from io import StringIO
+from sklearn.tree import export_graphviz
+
+def analyse_feature_importance(dm_model, feature_names, n_to_display=20):
+    # grab feature importances from the model
+    importances = dm_model.feature_importances_
+    
+    # sort them out in descending order
+    indices = np.argsort(importances)
+    indices = np.flip(indices, axis=0)
+
+    # limit to 20 features, you can leave this out to print out everything
+    indices = indices[:n_to_display]
+
+    for i in indices:
+        print(feature_names[i], ':', importances[i])
+
+def visualize_decision_tree(dm_model, feature_names, save_name):
+    dotfile = StringIO()
+    export_graphviz(dm_model, out_file=dotfile, feature_names=feature_names)
+    graph = pydot.graph_from_dot_data(dotfile.getvalue())
+    graph[0].write_png(save_name) # saved in the following file
