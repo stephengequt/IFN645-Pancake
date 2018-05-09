@@ -176,3 +176,121 @@ for cluster in clusters_to_inspect:
 
     plt.tight_layout()
     plt.show()
+
+
+
+
+# list to save the clusters and cost
+clusters = []
+inertia_vals = []
+
+# this whole process should take a while
+for k in range(2, 15, 2):
+    # train clustering with the specified K
+    model = KMeans(n_clusters=k, random_state=rs, n_jobs=10)
+    model.fit(X)
+
+    # append model to cluster list
+    clusters.append(model)
+    inertia_vals.append(model.inertia_)
+
+
+
+# plot the inertia vs K values
+plt.plot(range(2,15,2), inertia_vals, marker='*')
+plt.show()
+
+
+
+from sklearn.metrics import silhouette_score
+
+print(clusters[1])
+print("Silhouette score for k=4", silhouette_score(X, clusters[1].predict(X)))
+
+print(clusters[2])
+print("Silhouette score for k=6", silhouette_score(X, clusters[2].predict(X)))
+
+
+
+
+
+# visualisation of K=4 clustering solution
+model = KMeans(n_clusters=4, random_state=rs)
+model.fit(X)
+
+# sum of intra-cluster distances
+print("Sum of intra-cluster distance:", model.inertia_)
+
+print("Centroid locations:")
+for centroid in model.cluster_centers_:
+    print(centroid)
+
+y = model.predict(X)
+df2['Cluster_ID'] = y
+
+# how many in each
+print("Cluster membership")
+print(df2['Cluster_ID'].value_counts())
+
+# pairplot
+# added alpha value to assist with overlapping points
+cluster_g = sns.pairplot(df2, hue='Cluster_ID', plot_kws={'alpha': 0.5})
+plt.show()
+
+
+
+
+
+import pandas as pd
+
+# load the bank transaction dataset
+df = pd.read_csv('Stephen/Prac/datasets/bank.csv')
+
+# info and the first 10 transactions
+print(df.info())
+print(df.head(10))
+
+
+
+
+# group by account, then list all services
+transactions = df.groupby(['ACCOUNT'])['SERVICE'].apply(list)
+
+print(transactions.head(5))
+
+
+
+
+from apyori import apriori
+
+# type cast the transactions from pandas into normal list format and run apriori
+transaction_list = list(transactions)
+results = list(apriori(transaction_list, min_support=0.05))
+
+# print first 5 rules
+print(results[:5])
+
+
+def convert_apriori_results_to_pandas_df(results):
+    rules = []
+
+    for rule_set in results:
+        for rule in rule_set.ordered_statistics:
+            # items_base = left side of rules, items_add = right side
+            # support, confidence and lift for respective rules
+            rules.append([','.join(rule.items_base), ','.join(rule.items_add),
+                          rule_set.support, rule.confidence, rule.lift])
+
+            # typecast it to pandas df
+    return pd.DataFrame(rules, columns=['Left_side', 'Right_side', 'Support', 'Confidence', 'Lift'])
+
+
+result_df = convert_apriori_results_to_pandas_df(results)
+
+print(result_df.head(20))
+
+
+
+# sort all acquired rules descending by lift
+result_df = result_df.sort_values(by='Lift', ascending=False)
+print(result_df.head(10))
