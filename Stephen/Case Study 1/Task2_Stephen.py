@@ -37,7 +37,7 @@ def visualize_decision_tree(dm_model, feature_names, save_name):
 def data_prep():
 
     # read the organics dataset
-    org1 = pd.read_csv('dataset/Organic_Clean_V2.csv')
+    org1 = pd.read_csv('Organic_Clean.csv')
 
     #drop the unused target variable that is ORGANICS
     org1.drop(['ORGANICS','AGEGRP1'], axis=1, inplace=True)
@@ -109,6 +109,21 @@ nodes_leaves(model)
 
 #analyze top 20 important features from the model
 analyse_feature_importance(model, X.columns, n_to_display=20)
+
+#number of nodes
+print(model.tree_.node_count)
+
+#number of leaves 
+leave_id = model.apply(X_train)
+leave_id = np.unique(leave_id)
+print(len(leave_id))
+
+# grab feature importances from the model and feature name from the original X
+importances = model.feature_importances_
+feature_names = X.columns
+
+#variable is used for the first split? What are the competing splits for this first split
+feature_names[model.tree_.feature]
 
 #visualize
 # visualize_decision_tree(model, X.columns, "stephentask2_org_vis.png")
