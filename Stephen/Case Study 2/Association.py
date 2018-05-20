@@ -27,7 +27,7 @@ from apyori import apriori
 
 # type cast the transactions from pandas into normal list format and run apriori
 transaction_list = list(transactions)
-results = list(apriori(transaction_list, min_support=0.000000000000001))
+results = list(apriori(transaction_list, min_support=0.01))
 
 # print first 5 rules
 print(results[:5])
