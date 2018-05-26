@@ -122,7 +122,7 @@ plt.show()
 ###########Standardised Model###############
 # convert df2 to matrix
 Y = df2.as_matrix()
-
+Y
 # # scaling
 scaler = StandardScaler()
 Y = scaler.fit_transform(X)
