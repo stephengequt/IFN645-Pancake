@@ -1,3 +1,4 @@
+######################################################################################
 # Location Number         Numerical code for the store (unique identifier)
 # DEALER CODE             Text identifier for the store(unique identifier)
 # REPORT DATE             Date of the data extraction
@@ -6,16 +7,20 @@
 # WAGON                   Number of station wagon model cars sold by the store
 # UTE                     Number of utility / tray back model cars sold by the store
 # K_SALES_TOT             Total sales for the store($$$)
+######################################################################################
 
+
+######################################################################################
+#Input dataset
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv('model_car_sales.csv', na_filter=False)
+df = pd.read_csv('Stephen/Case Study 2/datasets/model_car_sales.csv', na_filter=False)
 df.info()
 
 # get more information from RegDens
 print(df['HATCH'].describe())
-print(df['HATCH'].value_counts())
+print(df['HATCH'].value_counts().nlargest(5))
 
 # replace the empty strings in the series with nan and typecast to float
 df['HATCH'] = df['HATCH'].replace('', np.nan).astype(float)
@@ -174,4 +179,40 @@ for k in range(2, 15, 2):
     
 # plot the inertia vs K values
 plt.plot(range(2,15,2), inertia_vals, marker='*')
+plt.show()
+
+####### silhouette_score
+
+from sklearn.metrics import silhouette_score
+
+print(clusters[1])
+print("Silhouette score for k=4", silhouette_score(X, clusters[1].predict(X)))
+
+print(clusters[2])
+print("Silhouette score for k=6", silhouette_score(X, clusters[2].predict(X)))
+
+
+
+
+# visualisation of K=4 clustering solution
+model = KMeans(n_clusters=6, random_state=rs)
+model.fit(Y)
+
+# sum of intra-cluster distances
+print("Sum of intra-cluster distance:", model.inertia_)
+
+print("Centroid locations:")
+for centroid in model.cluster_centers_:
+    print(centroid)
+
+y = model.predict(Y)
+df2['Cluster_ID'] = y
+
+# how many in each
+print("Cluster membership")
+print(df2['Cluster_ID'].value_counts())
+
+# pairplot
+# added alpha value to assist with overlapping points
+cluster_g = sns.pairplot(df2, hue='Cluster_ID', plot_kws={'alpha': 0.5})
 plt.show()
